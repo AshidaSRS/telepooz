@@ -24,7 +24,7 @@ import com.github.nikdon.telepooz.model.methods._
 import com.github.nikdon.telepooz.model.methods.payments.{AnswerPreCheckoutQuery, AnswerShippingQuery, SendInvoice}
 import com.github.nikdon.telepooz.model.payments._
 import com.github.nikdon.telepooz.utils._
-import io.circe.Encoder
+import io.circe.{Encoder, Json}
 import io.circe.generic.extras._
 import io.circe.generic.extras.semiauto._
 import io.circe.syntax._
@@ -113,12 +113,25 @@ trait CirceEncoders {
     deriveEncoder[inline.InputVenueMessageContent]
   implicit val inputLocationMessageContentEncoder: Encoder[inline.InputLocationMessageContent] =
     deriveEncoder[inline.InputLocationMessageContent]
-  implicit val inputTextMessageContentEncoder: Encoder[inline.InputTextMessageContent] =
-    deriveEncoder[inline.InputTextMessageContent]
+  implicit val inputTextMessageContentEncoder: Encoder[inline.InputTextMessageContent] = (a: inline.InputTextMessageContent) => {
+    Json.obj(
+      ("message_text", Json.fromString(a.message_text))
+    )
+  }
 
-  /** inline.InlineQueryResult */
-  implicit val inlineQueryResultArticleEncoder: Encoder[inline.InlineQueryResultArticle] =
-    deriveEncoder[inline.InlineQueryResultArticle].mapJson(_.deepMerge(inline.InlineQueryResultArticle.`type`.asJson))
+//  /** inline.InlineQueryResult */
+//  implicit val inlineQueryResultArticleEncoder: Encoder[inline.InlineQueryResultArticle] =
+//    deriveEncoder[inline.InlineQueryResultArticle].mapJson(_.deepMerge(inline.InlineQueryResultArticle.`type`.asJson))
+
+  implicit  val inlineQueryResultArticle: Encoder[inline.InlineQueryResultArticle] = (a: inline.InlineQueryResultArticle) => {
+    Json.obj(
+      ("id", Json.fromString(a.id)),
+      ("type", Json.fromString("article")),
+      ("title", Json.fromString(a.title)),
+      ("description", Json.fromString(a.description.getOrElse(a.title))),
+      ("input_message_content", a.input_message_content.asInstanceOf[inline.InputTextMessageContent].asJson)
+    )
+  }
   implicit val inlineQueryResultPhotoEncoder: Encoder[inline.InlineQueryResultPhoto] =
     deriveEncoder[inline.InlineQueryResultPhoto].mapJson(_.deepMerge(inline.InlineQueryResultPhoto.`type`.asJson))
   implicit val inlineQueryResultGifEncoder: Encoder[inline.InlineQueryResultGif] =
@@ -169,7 +182,12 @@ trait CirceEncoders {
   implicit val inlineQueryResultGameEncoder: Encoder[inline.InlineQueryResultGame] =
     deriveEncoder[inline.InlineQueryResultGame].mapJson(_.deepMerge(inline.InlineQueryResultGame.`type`.asJson))
 
-  implicit val answerInlineQueryEncoder: Encoder[inline.AnswerInlineQuery] = deriveEncoder[inline.AnswerInlineQuery]
+  implicit val answerInlineQueryEncoder: Encoder[inline.AnswerInlineQuery] = (a: inline.AnswerInlineQuery) => {
+    Json.obj(
+      ("inline_query_id", Json.fromString(a.inline_query_id)),
+      ("results", a.results.map(_.asInstanceOf[inline.InlineQueryResultArticle]).asJson)
+    )
+  }
 
   // Methods
   implicit val getMeJsonEncoder: Encoder[GetMe.type]                = Encoder.instance(_ ⇒ io.circe.Json.Null)

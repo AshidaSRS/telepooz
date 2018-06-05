@@ -16,6 +16,9 @@
 
 package com.github.nikdon.telepooz.model.inline
 
+import com.github.nikdon.telepooz.model.Response
+import com.github.nikdon.telepooz.model.methods.Method
+
 
 /**
   * Use this method to send answers to an inline query. On success, True is returned.
@@ -41,4 +44,5 @@ case class AnswerInlineQuery(inline_query_id: String,
                              is_personal: Option[Boolean] = None,
                              next_offset: Option[String] = None,
                              switch_pm_text: Option[String] = None,
-                             switch_pm_parameter: Option[String] = None)
+                             switch_pm_parameter: Option[String] = None
+                            ) extends Method[Response[Boolean]]

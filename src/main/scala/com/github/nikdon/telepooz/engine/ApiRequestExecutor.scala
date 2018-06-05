@@ -23,9 +23,10 @@ import akka.http.scaladsl.model.Uri
 import akka.stream._
 import cats.implicits._
 import cats.~>
-import com.github.nikdon.telepooz.model._
-import com.github.nikdon.telepooz.model.methods._
 import com.github.nikdon.telepooz.json._
+import com.github.nikdon.telepooz.model._
+import com.github.nikdon.telepooz.model.inline.AnswerInlineQuery
+import com.github.nikdon.telepooz.model.methods._
 import com.github.nikdon.telepooz.model.methods.payments.{AnswerPreCheckoutQuery, AnswerShippingQuery, SendInvoice}
 import com.typesafe.config.{Config, ConfigFactory}
 import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport
@@ -108,5 +109,6 @@ abstract class ApiRequestExecutor(implicit system: ActorSystem,
     case m: AnswerPreCheckoutQuery => go(m.name, dropNulls(m.asJson))
     case m: AnswerShippingQuery    => go(m.name, dropNulls(m.asJson))
     case m: SendInvoice            => go(m.name, dropNulls(m.asJson))
+    case m: AnswerInlineQuery      => go(m.name, dropNulls(m.asJson))
   }
 }

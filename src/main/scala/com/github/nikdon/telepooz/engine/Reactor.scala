@@ -21,19 +21,23 @@ import akka.event.LoggingAdapter
 import akka.stream.scaladsl.Sink
 import cats.implicits._
 import com.github.nikdon.telepooz.api._
-import com.github.nikdon.telepooz.model.{methods, _}
 import com.github.nikdon.telepooz.json.CirceEncoders
+import com.github.nikdon.telepooz.model.inline.InlineQuery
+import com.github.nikdon.telepooz.model.{methods, _}
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 abstract class Reactions {
   def react(m: Message)(implicit ec: ExecutionContext): Future[Done.type]
+  def react(m: InlineQuery)(implicit ec: ExecutionContext): Future[Done.type]
 }
 
 case class CommandBasedReactions(
-    private val r: Map[String, Message ⇒ CommandBasedReactions.Arguments ⇒ CommandBasedReactions.IO] = Map.empty)
+    private val r: Map[String, Message ⇒ CommandBasedReactions.Arguments ⇒ CommandBasedReactions.IO] = Map.empty,
+    private val i: Map[String, InlineQuery => CommandBasedReactions.Arguments => CommandBasedReactions.IO] = Map.empty)
     extends Reactions {
+
   def on(command: String)(reaction: Message ⇒ CommandBasedReactions.Arguments ⇒ CommandBasedReactions.IO) =
     CommandBasedReactions(r + (command → reaction))
 
@@ -42,6 +46,16 @@ case class CommandBasedReactions(
       text ← m.text
       Array(cmd, args @ _ *) = text.trim.split(" ")
       reaction ← r.get(cmd)
+    } yield reaction(m)(args)
+
+    maybeReaction.fold(Future.successful(Done))(_.map(_ ⇒ Done))
+  }
+
+  def react(m: InlineQuery)(implicit ec: ExecutionContext): Future[Done.type] = {
+    val maybeReaction: Option[CommandBasedReactions.IO] = for {
+      text ← Some(m.query)
+      Array(args @ _ *) = text.trim.split(" ")
+      reaction ← i.get("inline")
     } yield reaction(m)(args)
 
     maybeReaction.fold(Future.successful(Done))(_.map(_ ⇒ Done))
@@ -63,11 +77,15 @@ abstract class Reactor(implicit are: ApiRequestExecutor, ec: ExecutionContext, l
 
   /** Sink that for each incoming `Update` reacts according to an actions in `reactions` */
   val react: Sink[Update, Future[Done]] = Sink.foreachParallel(parallelism)(update ⇒
-    update.message match {
-      case None ⇒ logger.debug(s"Update ${update.update_id} with empty message")
-      case Some(m) ⇒
+    (update.message, update.inline_query) match {
+      case (None, None) ⇒ logger.debug(s"Update ${update.update_id} with empty message")
+      case (Some(m), None) ⇒
         logger.debug(s"Reacting on update ${update.update_id}")
         reactions.react(m)
+      case (None, Some(i)) =>
+        logger.debug(s"Reacting on update ${update.update_id}")
+        reactions.react(i)
+      case _ => logger.debug("both nope")
   })
 
   /**
