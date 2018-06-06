@@ -4,7 +4,7 @@ headerLicense := Some(HeaderLicense.ALv2("2016", "Nikolay Donets"))
 lazy val buildSettings = Seq(
   organization := "com.github.nikdon",
   name := "telepooz",
-  version := "0.5.6",
+  version := "0.5.6-SNAPSHOT",
   scalaVersion := "2.12.3",
   licenses += ("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))
 )

@@ -57,8 +57,17 @@ trait CirceEncoders {
   implicit val documentEncoder: Encoder[Document] = deriveEncoder[Document]
   implicit val fileEncoder: Encoder[File]         = deriveEncoder[File]
 
-  implicit val inlineKeyboardButtonEncoder: Encoder[InlineKeyboardButton] = deriveEncoder[InlineKeyboardButton]
-  implicit val keyboardButtonEncoder: Encoder[KeyboardButton]             = deriveEncoder[KeyboardButton]
+  //implicit val inlineKeyboardButtonEncoder: Encoder[InlineKeyboardButton] = deriveEncoder[InlineKeyboardButton]
+  implicit val inlineKeyboardButtonEncoder: Encoder[InlineKeyboardButton] = (a: InlineKeyboardButton) =>
+    Json.obj(
+      ("text", a.text.asJson),
+      ("url", a.url.asJson),
+      ("callback_data", a.callback_data.asJson),
+      ("switch_inline_query", a.switch_inline_query.asJson),
+      ("switch_inline_query_current_chat",a.switch_inline_query_current_chat.asJson),
+      ("pay", a.pay.asJson)
+    )
+    //implicit val keyboardButtonEncoder: Encoder[KeyboardButton]             = deriveEncoder[KeyboardButton]
   implicit val locationEncoder: Encoder[Location]                         = deriveEncoder[Location]
 
   implicit val gameHighScoreEncoder: Encoder[GameHighScore] = deriveEncoder[GameHighScore]
@@ -79,10 +88,14 @@ trait CirceEncoders {
 
   implicit val replyMarkupEncoder: Encoder[ReplyMarkup] = Encoder.instance {
     case fr: ForceReply            => fr.asJson
-    case ikm: InlineKeyboardMarkup => ikm.asJson
     case rkh: ReplyKeyboardHide    => rkh.asJson
     case rkm: ReplyKeyboardMarkup  => rkm.asJson
+    case _ => "".asJson
   }
+
+  implicit val inlineKeyboardMarkup: Encoder[InlineKeyboardMarkup] = (ikm: InlineKeyboardMarkup) => Json.obj(
+    ("inline_keyboard", ikm.keyboard.asJson)
+  )
 
   implicit val stickerEncoder: Encoder[Sticker]                     = deriveEncoder[Sticker]
   implicit val userEncoder: Encoder[User]                           = deriveEncoder[User]
@@ -115,7 +128,8 @@ trait CirceEncoders {
     deriveEncoder[inline.InputLocationMessageContent]
   implicit val inputTextMessageContentEncoder: Encoder[inline.InputTextMessageContent] = (a: inline.InputTextMessageContent) => {
     Json.obj(
-      ("message_text", Json.fromString(a.message_text))
+      ("message_text", Json.fromString(a.message_text)),
+      ("parse_mode", a.parse_mode.asJson)
     )
   }
 
@@ -129,6 +143,7 @@ trait CirceEncoders {
       ("type", Json.fromString("article")),
       ("title", Json.fromString(a.title)),
       ("description", Json.fromString(a.description.getOrElse(a.title))),
+      ("reply_markup", a.reply_markup.asJson),
       ("input_message_content", a.input_message_content.asInstanceOf[inline.InputTextMessageContent].asJson)
     )
   }
